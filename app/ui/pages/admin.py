@@ -8,6 +8,7 @@ from app.database.admin_db import (
 )
 from app.services.network_checker import has_network_connection
 from app.ui.components.navigation import render_back_to_home_button
+from app.ui.components.report_view import render_report_details
 from app.ui.components.score import render_score_badge
 
 
@@ -16,6 +17,13 @@ def get_input_type_label(input_type: str) -> str:
         return "Áudio"
 
     return "Vídeo"
+
+
+def get_status_label(status: str) -> str:
+    if status == "deleted":
+        return "Descartada"
+
+    return "Ativa"
 
 
 def get_profile_full_name(profile: dict) -> str:
@@ -40,9 +48,17 @@ def get_profile_option_label(profile: dict) -> str:
     return f"{full_name} — {location}"
 
 
-def render_admin_metrics(profiles: list, analyses: list):
-    total_users = len(profiles)
+def calculate_analysis_summary(analyses: list) -> dict:
     total_analyses = len(analyses)
+
+    scores = [
+        analysis.get("score", 0)
+        for analysis in analyses
+        if analysis.get("score") is not None
+    ]
+
+    average_score = round(sum(scores) / len(scores), 1) if scores else 0
+    best_score = max(scores) if scores else 0
 
     total_audio = sum(
         1 for analysis in analyses
@@ -54,19 +70,31 @@ def render_admin_metrics(profiles: list, analyses: list):
         if analysis.get("input_type") == "video"
     )
 
+    return {
+        "total_analyses": total_analyses,
+        "average_score": average_score,
+        "best_score": best_score,
+        "total_audio": total_audio,
+        "total_video": total_video,
+    }
+
+
+def render_admin_metrics(profiles: list, analyses: list):
+    summary = calculate_analysis_summary(analyses)
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Usuários", total_users)
+        st.metric("Usuários", len(profiles))
 
     with col2:
-        st.metric("Análises", total_analyses)
+        st.metric("Análises", summary["total_analyses"])
 
     with col3:
-        st.metric("Áudio", total_audio)
+        st.metric("Áudio", summary["total_audio"])
 
     with col4:
-        st.metric("Vídeo", total_video)
+        st.metric("Vídeo", summary["total_video"])
 
 
 def render_selected_user_profile(profile: dict):
@@ -83,6 +111,29 @@ def render_selected_user_profile(profile: dict):
         st.caption(f"ID do usuário: {profile.get('id')}")
 
 
+def render_selected_user_metrics(analyses: list):
+    summary = calculate_analysis_summary(analyses)
+
+    st.subheader("Resumo do usuário")
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.metric("Análises", summary["total_analyses"])
+
+    with col2:
+        st.metric("Média", f"{summary['average_score']}/100")
+
+    with col3:
+        st.metric("Melhor score", f"{summary['best_score']}/100")
+
+    with col4:
+        st.metric("Áudio", summary["total_audio"])
+
+    with col5:
+        st.metric("Vídeo", summary["total_video"])
+
+
 def render_user_analyses(analyses: list):
     st.subheader("Análises do usuário")
 
@@ -91,10 +142,11 @@ def render_user_analyses(analyses: list):
         return
 
     for analysis in analyses:
+        analysis_id = analysis.get("id")
         title = analysis.get("title") or "Análise sem título"
         input_type = get_input_type_label(analysis.get("input_type", "video"))
         score = analysis.get("score", 0)
-        status = analysis.get("status", "active")
+        status = get_status_label(analysis.get("status", "active"))
         created_at = analysis.get("created_at")
         ai_available = analysis.get("ai_available", False)
 
@@ -116,7 +168,10 @@ def render_user_analyses(analyses: list):
                 render_score_badge(score)
 
             with col3:
-                st.caption(f"ID da análise: {analysis.get('id')}")
+                if st.button("Ver detalhes", key=f"admin_detail_{analysis_id}"):
+                    st.session_state["admin_selected_analysis"] = analysis_id
+                    st.session_state["page"] = "admin_detail"
+                    st.rerun()
 
 
 def render_admin(user_id: str, access_token: str):
@@ -166,6 +221,12 @@ def render_admin(user_id: str, access_token: str):
         )
     )
 
+    previous_user_id = st.session_state.get("admin_previous_user_id")
+
+    if previous_user_id != selected_user_id:
+        st.session_state.pop("admin_selected_analysis", None)
+        st.session_state["admin_previous_user_id"] = selected_user_id
+
     selected_profile = profile_options[selected_user_id]
 
     try:
@@ -179,6 +240,10 @@ def render_admin(user_id: str, access_token: str):
         return
 
     render_selected_user_profile(selected_profile)
+
+    st.divider()
+
+    render_selected_user_metrics(user_analyses)
 
     st.divider()
 
