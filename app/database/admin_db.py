@@ -35,7 +35,7 @@ def get_admin_profiles(user_id: str, access_token: str):
         supabase
         .table("profiles")
         .select(
-            "id, first_name, last_name, city, state, created_at"
+            "id, first_name, last_name, city, state, avatar_url, created_at"
         )
         .order("created_at", desc=True)
         .execute()
@@ -88,3 +88,30 @@ def get_admin_analyses_by_user(
     )
 
     return response.data or []
+
+
+def get_admin_analysis_report(
+    admin_user_id: str,
+    access_token: str,
+    analysis_id: str
+):
+    if not is_admin_user(admin_user_id, access_token):
+        return None
+
+    if not analysis_id:
+        return None
+
+    supabase = get_authenticated_client(access_token)
+
+    response = (
+        supabase
+        .table("analyses")
+        .select(
+            "id, user_id, title, input_type, score, report_json, created_at"
+        )
+        .eq("id", analysis_id)
+        .maybe_single()
+        .execute()
+    )
+
+    return response.data
