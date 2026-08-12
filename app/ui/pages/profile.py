@@ -1,14 +1,38 @@
+from datetime import date, datetime
+
 import streamlit as st
 
 from app.database.profile_db import get_profile, save_profile
+from app.services.avatar_storage import upload_avatar_image_to_storage
 from app.services.network_checker import has_network_connection
 from app.services.temp_file_cleaner import clean_temp_files
-from app.services.avatar_storage import upload_avatar_image_to_storage
 from app.ui.components.avatar import (
     render_avatar,
     render_uploaded_avatar_preview,
 )
 from app.ui.components.navigation import render_back_to_home_button
+
+
+def parse_birth_date(value):
+    if not value:
+        return None
+
+    try:
+        return datetime.fromisoformat(value).date()
+    except Exception:
+        return None
+
+
+def get_profile_full_name(profile: dict) -> str:
+    full_name = (profile.get("full_name") or "").strip()
+
+    if full_name:
+        return full_name
+
+    return (
+        f"{profile.get('first_name', '')} "
+        f"{profile.get('last_name', '')}"
+    ).strip()
 
 
 def render_complete_profile(user_id: str, access_token: str):
@@ -30,27 +54,34 @@ def render_complete_profile(user_id: str, access_token: str):
     render_uploaded_avatar_preview(avatar_file, width=120)
 
     with st.form("profile_form"):
-        col1, col2 = st.columns(2)
+        st.subheader("Informações pessoais")
 
-        with col1:
-            first_name = st.text_input("Nome")
-            cpf = st.text_input("CPF", placeholder="000.000.000-00")
-            cep = st.text_input("CEP", placeholder="00000-000")
-            number = st.text_input("Número")
+        full_name = st.text_input(
+            "Nome completo",
+            placeholder="Ex: Daniel Costa"
+        )
 
-        with col2:
-            last_name = st.text_input("Sobrenome")
-            phone = st.text_input("Telefone", placeholder="+55 (31) 99999-9999")
-            street = st.text_input("Rua")
-            neighborhood = st.text_input("Bairro")
+        birth_date = st.date_input(
+            "Data de nascimento",
+            value=None,
+            min_value=date(1900, 1, 1),
+            max_value=date.today(),
+            format="DD/MM/YYYY"
+        )
 
-        col3, col4 = st.columns(2)
+        st.subheader("Informações cadastrais")
 
-        with col3:
-            city = st.text_input("Cidade")
+        cpf = st.text_input("CPF", placeholder="000.000.000-00")
+        phone = st.text_input("Telefone", placeholder="+55 (31) 99999-9999")
 
-        with col4:
-            state = st.text_input("Estado", placeholder="MG", max_chars=2)
+        st.subheader("Endereço")
+
+        cep = st.text_input("CEP", placeholder="00000-000")
+        street = st.text_input("Rua")
+        number = st.text_input("Número")
+        neighborhood = st.text_input("Bairro")
+        city = st.text_input("Cidade")
+        state = st.text_input("Estado", placeholder="MG", max_chars=2)
 
         submitted = st.form_submit_button("Salvar cadastro")
 
@@ -72,8 +103,8 @@ def render_complete_profile(user_id: str, access_token: str):
             result = save_profile(
                 user_id=user_id,
                 access_token=access_token,
-                first_name=first_name,
-                last_name=last_name,
+                full_name=full_name,
+                birth_date=birth_date,
                 cpf=cpf,
                 phone=phone,
                 cep=cep,
@@ -110,45 +141,44 @@ def render_profile(user_id: str, access_token: str):
     )
 
     if avatar_file:
-        try:
-            avatar_url = upload_avatar_image_to_storage(
-                avatar_file,
-                user_id,
-                access_token
-            )
-        except Exception:
-            st.error("Não foi possível salvar a foto de perfil. Tente novamente.")
-            return
+        render_uploaded_avatar_preview(avatar_file, width=120)
 
     with st.form("edit_profile_form"):
-        col1, col2 = st.columns(2)
+        st.subheader("Informações pessoais")
 
-        with col1:
-            first_name = st.text_input("Nome", value=profile.get("first_name", ""))
-            cpf = st.text_input("CPF", value=profile.get("cpf", ""))
-            cep = st.text_input("CEP", value=profile.get("cep", ""))
-            number = st.text_input("Número", value=profile.get("number", ""))
+        full_name = st.text_input(
+            "Nome completo",
+            value=get_profile_full_name(profile)
+        )
 
-        with col2:
-            last_name = st.text_input("Sobrenome", value=profile.get("last_name", ""))
-            phone = st.text_input("Telefone", value=profile.get("phone", ""))
-            street = st.text_input("Rua", value=profile.get("street", ""))
-            neighborhood = st.text_input(
-                "Bairro",
-                value=profile.get("neighborhood", "")
-            )
+        birth_date = st.date_input(
+            "Data de nascimento",
+            value=parse_birth_date(profile.get("birth_date")),
+            min_value=date(1900, 1, 1),
+            max_value=date.today(),
+            format="DD/MM/YYYY"
+        )
 
-        col3, col4 = st.columns(2)
+        st.subheader("Informações cadastrais")
 
-        with col3:
-            city = st.text_input("Cidade", value=profile.get("city", ""))
+        cpf = st.text_input("CPF", value=profile.get("cpf", ""))
+        phone = st.text_input("Telefone", value=profile.get("phone", ""))
 
-        with col4:
-            state = st.text_input(
-                "Estado",
-                value=profile.get("state", ""),
-                max_chars=2
-            )
+        st.subheader("Endereço")
+
+        cep = st.text_input("CEP", value=profile.get("cep", ""))
+        street = st.text_input("Rua", value=profile.get("street", ""))
+        number = st.text_input("Número", value=profile.get("number", ""))
+        neighborhood = st.text_input(
+            "Bairro",
+            value=profile.get("neighborhood", "")
+        )
+        city = st.text_input("Cidade", value=profile.get("city", ""))
+        state = st.text_input(
+            "Estado",
+            value=profile.get("state", ""),
+            max_chars=2
+        )
 
         submitted = st.form_submit_button("Salvar alterações")
 
@@ -173,8 +203,8 @@ def render_profile(user_id: str, access_token: str):
             result = save_profile(
                 user_id=user_id,
                 access_token=access_token,
-                first_name=first_name,
-                last_name=last_name,
+                full_name=full_name,
+                birth_date=birth_date,
                 cpf=cpf,
                 phone=phone,
                 cep=cep,
