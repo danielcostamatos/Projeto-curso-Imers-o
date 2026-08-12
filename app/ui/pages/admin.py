@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import streamlit as st
 
 from app.database.admin_db import (
@@ -8,8 +10,22 @@ from app.database.admin_db import (
 )
 from app.services.network_checker import has_network_connection
 from app.ui.components.navigation import render_back_to_home_button
-from app.ui.components.report_view import render_report_details
 from app.ui.components.score import render_score_badge
+
+
+def format_datetime(value: str) -> str:
+    if not value:
+        return "Data não informada"
+
+    try:
+        parsed_date = datetime.fromisoformat(
+            value.replace("Z", "+00:00")
+        )
+
+        return parsed_date.strftime("%d/%m/%Y às %H:%M")
+
+    except Exception:
+        return value
 
 
 def get_input_type_label(input_type: str) -> str:
@@ -70,13 +86,59 @@ def calculate_analysis_summary(analyses: list) -> dict:
         if analysis.get("input_type") == "video"
     )
 
+    total_active = sum(
+        1 for analysis in analyses
+        if analysis.get("status", "active") == "active"
+    )
+
+    total_deleted = sum(
+        1 for analysis in analyses
+        if analysis.get("status") == "deleted"
+    )
+
     return {
         "total_analyses": total_analyses,
         "average_score": average_score,
         "best_score": best_score,
         "total_audio": total_audio,
         "total_video": total_video,
+        "total_active": total_active,
+        "total_deleted": total_deleted,
     }
+
+
+def filter_analyses(
+    analyses: list,
+    status_filter: str,
+    input_type_filter: str
+) -> list:
+    filtered = analyses
+
+    if status_filter == "Ativas":
+        filtered = [
+            analysis for analysis in filtered
+            if analysis.get("status", "active") == "active"
+        ]
+
+    elif status_filter == "Descartadas":
+        filtered = [
+            analysis for analysis in filtered
+            if analysis.get("status") == "deleted"
+        ]
+
+    if input_type_filter == "Áudio":
+        filtered = [
+            analysis for analysis in filtered
+            if analysis.get("input_type") == "audio"
+        ]
+
+    elif input_type_filter == "Vídeo":
+        filtered = [
+            analysis for analysis in filtered
+            if analysis.get("input_type") == "video"
+        ]
+
+    return filtered
 
 
 def render_admin_metrics(profiles: list, analyses: list):
@@ -106,9 +168,11 @@ def render_selected_user_profile(profile: dict):
 
     with st.container(border=True):
         st.write(f"👤 **{full_name}**")
-        st.caption(f"Localização: {city} {state}")
-        st.caption(f"Cadastrado em: {profile.get('created_at')}")
-        st.caption(f"ID do usuário: {profile.get('id')}")
+        st.caption(f"Localização: {city} {state}".strip())
+        st.caption(f"Cadastrado em: {format_datetime(profile.get('created_at'))}")
+
+        with st.expander("Ver ID do usuário"):
+            st.code(profile.get("id", "ID não informado"))
 
 
 def render_selected_user_metrics(analyses: list):
@@ -116,7 +180,7 @@ def render_selected_user_metrics(analyses: list):
 
     st.subheader("Resumo do usuário")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric("Análises", summary["total_analyses"])
@@ -128,17 +192,45 @@ def render_selected_user_metrics(analyses: list):
         st.metric("Melhor score", f"{summary['best_score']}/100")
 
     with col4:
-        st.metric("Áudio", summary["total_audio"])
+        st.metric("Ativas", summary["total_active"])
+
+    col5, col6, col7 = st.columns(3)
 
     with col5:
+        st.metric("Descartadas", summary["total_deleted"])
+
+    with col6:
+        st.metric("Áudio", summary["total_audio"])
+
+    with col7:
         st.metric("Vídeo", summary["total_video"])
+
+
+def render_analysis_filters():
+    st.subheader("Filtros das análises")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        status_filter = st.selectbox(
+            "Status",
+            options=["Todas", "Ativas", "Descartadas"]
+        )
+
+    with col2:
+        input_type_filter = st.selectbox(
+            "Tipo",
+            options=["Todos", "Áudio", "Vídeo"]
+        )
+
+    return status_filter, input_type_filter
 
 
 def render_user_analyses(analyses: list):
     st.subheader("Análises do usuário")
 
     if not analyses:
-        st.info("Este usuário ainda não possui análises registradas.")
+        st.info("Nenhuma análise encontrada para os filtros selecionados.")
         return
 
     for analysis in analyses:
@@ -147,16 +239,15 @@ def render_user_analyses(analyses: list):
         input_type = get_input_type_label(analysis.get("input_type", "video"))
         score = analysis.get("score", 0)
         status = get_status_label(analysis.get("status", "active"))
-        created_at = analysis.get("created_at")
+        created_at = format_datetime(analysis.get("created_at"))
         ai_available = analysis.get("ai_available", False)
 
         with st.container(border=True):
-            col1, col2, col3 = st.columns([4, 1.5, 2])
+            col1, col2, col3 = st.columns([4, 1.4, 1.6])
 
             with col1:
                 st.write(f"📄 **{title}**")
-                st.caption(f"Tipo: {input_type}")
-                st.caption(f"Status: {status}")
+                st.caption(f"Tipo: {input_type} | Status: {status}")
                 st.caption(f"Criada em: {created_at}")
 
                 if not ai_available:
@@ -247,6 +338,18 @@ def render_admin(user_id: str, access_token: str):
 
     st.divider()
 
-    render_user_analyses(user_analyses)
+    status_filter, input_type_filter = render_analysis_filters()
+
+    filtered_analyses = filter_analyses(
+        user_analyses,
+        status_filter,
+        input_type_filter
+    )
+
+    st.caption(
+        f"Exibindo {len(filtered_analyses)} de {len(user_analyses)} análises."
+    )
+
+    render_user_analyses(filtered_analyses)
 
     render_back_to_home_button()
