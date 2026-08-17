@@ -1,3 +1,5 @@
+from html import escape
+
 import streamlit as st
 
 from app.database.profile_db import get_profile
@@ -6,10 +8,26 @@ from app.services.temp_file_cleaner import clean_temp_files
 from app.ui.session_state import clear_analysis_session
 
 
+def get_home_name_label(profile: dict) -> str:
+    if not profile:
+        return "usuário"
+
+    full_name = (profile.get("full_name") or "").strip()
+
+    if full_name:
+        return full_name.split()[0]
+
+    first_name = (profile.get("first_name") or "").strip()
+
+    if first_name:
+        return first_name
+
+    return "usuário"
+
+
 def render_home(user_id: str, access_token: str):
     profile = get_profile(user_id, access_token)
-    first_name = profile.get("first_name", "").strip() if profile else ""
-    name_label = first_name if first_name else "usuário"
+    name_label = escape(get_home_name_label(profile))
 
     st.markdown(
         f"""
