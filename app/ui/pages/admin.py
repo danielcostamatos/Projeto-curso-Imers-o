@@ -28,6 +28,18 @@ def format_datetime(value: str) -> str:
         return value
 
 
+def format_birth_date(value: str) -> str:
+    if not value:
+        return "Data de nascimento não informada"
+
+    try:
+        parsed_date = datetime.fromisoformat(value).date()
+        return parsed_date.strftime("%d/%m/%Y")
+
+    except Exception:
+        return value
+
+
 def get_input_type_label(input_type: str) -> str:
     if input_type == "audio":
         return "Áudio"
@@ -43,15 +55,20 @@ def get_status_label(status: str) -> str:
 
 
 def get_profile_full_name(profile: dict) -> str:
-    full_name = (
+    full_name = (profile.get("full_name") or "").strip()
+
+    if full_name:
+        return full_name
+
+    fallback_name = (
         f"{profile.get('first_name', '')} "
         f"{profile.get('last_name', '')}"
     ).strip()
 
-    if not full_name:
-        return "Usuário sem nome"
+    if fallback_name:
+        return fallback_name
 
-    return full_name
+    return "Usuário sem nome"
 
 
 def get_profile_option_label(profile: dict) -> str:
@@ -163,11 +180,13 @@ def render_selected_user_profile(profile: dict):
     st.subheader("Usuário selecionado")
 
     full_name = get_profile_full_name(profile)
+    birth_date = format_birth_date(profile.get("birth_date"))
     city = profile.get("city") or "Cidade não informada"
     state = profile.get("state") or ""
 
     with st.container(border=True):
         st.write(f"👤 **{full_name}**")
+        st.caption(f"Nascimento: {birth_date}")
         st.caption(f"Localização: {city} {state}".strip())
         st.caption(f"Cadastrado em: {format_datetime(profile.get('created_at'))}")
 
