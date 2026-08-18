@@ -24,12 +24,7 @@ def get_profile_display_name(profile: dict) -> str:
     if full_name:
         return full_name
 
-    fallback_name = (
-        f"{profile.get('first_name', '')} "
-        f"{profile.get('last_name', '')}"
-    ).strip()
-
-    return fallback_name
+    return "Usuário sem nome"
 
 
 def render_sidebar(user_id: str, access_token: str, render_avatar):

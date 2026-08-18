@@ -24,15 +24,7 @@ def parse_birth_date(value):
 
 
 def get_profile_full_name(profile: dict) -> str:
-    full_name = (profile.get("full_name") or "").strip()
-
-    if full_name:
-        return full_name
-
-    return (
-        f"{profile.get('first_name', '')} "
-        f"{profile.get('last_name', '')}"
-    ).strip()
+    return (profile.get("full_name") or "").strip()
 
 
 def render_complete_profile(user_id: str, access_token: str):

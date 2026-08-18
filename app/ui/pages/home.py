@@ -17,11 +17,6 @@ def get_home_name_label(profile: dict) -> str:
     if full_name:
         return full_name.split()[0]
 
-    first_name = (profile.get("first_name") or "").strip()
-
-    if first_name:
-        return first_name
-
     return "usuário"
 
 

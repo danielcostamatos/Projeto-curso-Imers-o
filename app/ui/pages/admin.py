@@ -60,14 +60,6 @@ def get_profile_full_name(profile: dict) -> str:
     if full_name:
         return full_name
 
-    fallback_name = (
-        f"{profile.get('first_name', '')} "
-        f"{profile.get('last_name', '')}"
-    ).strip()
-
-    if fallback_name:
-        return fallback_name
-
     return "Usuário sem nome"
 
 
