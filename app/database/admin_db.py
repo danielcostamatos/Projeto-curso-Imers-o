@@ -35,8 +35,7 @@ def get_admin_profiles(user_id: str, access_token: str):
         supabase
         .table("profiles")
         .select(
-            "id, full_name, birth_date, first_name, last_name, "
-            "city, state, avatar_url, created_at"
+            "id, full_name, birth_date, city, state, avatar_url, created_at"
         )
         .order("created_at", desc=True)
         .execute()

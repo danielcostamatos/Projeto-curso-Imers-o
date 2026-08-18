@@ -21,15 +21,6 @@ def normalize_full_name(full_name: str) -> str:
     return " ".join((full_name or "").strip().split())
 
 
-def split_full_name(full_name: str) -> tuple[str, str]:
-    name_parts = normalize_full_name(full_name).split(" ", 1)
-
-    first_name = name_parts[0] if name_parts else ""
-    last_name = name_parts[1] if len(name_parts) > 1 else ""
-
-    return first_name, last_name
-
-
 def normalize_birth_date(birth_date) -> str:
     if not birth_date:
         return ""
@@ -93,14 +84,10 @@ def save_profile(
     if not is_valid_cep(clean_cep):
         return {"success": False, "message": "Informe um CEP válido."}
 
-    first_name, last_name = split_full_name(clean_full_name)
-
     data = {
         "id": user_id,
         "full_name": clean_full_name,
         "birth_date": clean_birth_date,
-        "first_name": first_name,
-        "last_name": last_name,
         "cpf": clean_cpf,
         "phone": clean_phone,
         "cep": clean_cep,
@@ -144,15 +131,7 @@ def get_profile(user_id: str, access_token: str):
         if not response.data:
             return None
 
-        profile = response.data[0]
-
-        if not profile.get("full_name"):
-            fallback_name = normalize_full_name(
-                f"{profile.get('first_name', '')} {profile.get('last_name', '')}"
-            )
-            profile["full_name"] = fallback_name
-
-        return profile
+        return response.data[0]
 
     except Exception:
         return None
