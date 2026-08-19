@@ -37,12 +37,18 @@ def get_input_type_label(input_type: str) -> str:
     if input_type == "audio":
         return "Áudio"
 
+    if input_type == "text":
+        return "Texto"
+
     return "Vídeo"
 
 
 def get_input_type_icon(input_type: str) -> str:
     if input_type == "audio":
         return "🎙️"
+
+    if input_type == "text":
+        return "📝"
 
     return "🎥"
 
@@ -60,6 +66,30 @@ def render_analysis_type(input_type: str):
     label = get_input_type_label(input_type)
 
     st.caption(f"{icon} Tipo: {label}")
+
+
+def render_delete_warning(title: str, input_type: str):
+    st.warning(
+        f"Você tem certeza que deseja descartar a análise **{title}**?"
+    )
+
+    st.write(
+        "Após o descarte, esta análise não poderá mais ser acessada no seu histórico."
+    )
+
+    if input_type == "text":
+        st.caption(
+            "Atenção: o limite mensal utilizado por esta análise não será restaurado. "
+            "Em análises por texto, o conteúdo digitado permanece registrado no relatório "
+            "para fins de controle e acompanhamento."
+        )
+        return
+
+    st.caption(
+        "Atenção: o limite mensal utilizado por esta análise não será restaurado, "
+        "pois o relatório permanece registrado na nuvem para fins de controle e acompanhamento. "
+        "O conteúdo bruto original, seja áudio ou vídeo, não é armazenado no banco de dados."
+    )
 
 
 def render_history(user_id: str, access_token: str):
@@ -153,19 +183,7 @@ def render_history(user_id: str, access_token: str):
 
         if st.session_state.get("pending_delete_analysis") == analysis_id:
             with st.container(border=True):
-                st.warning(
-                    f"Você tem certeza que deseja descartar a análise **{title}**?"
-                )
-
-                st.write(
-                    "Após o descarte, esta análise não poderá mais ser acessada no seu histórico."
-                )
-
-                st.caption(
-                    "Atenção: o limite mensal utilizado por esta análise não será restaurado, "
-                    "pois o relatório permanece registrado na nuvem para fins de controle e acompanhamento. "
-                    "O conteúdo bruto original, seja áudio ou vídeo, não é armazenado no banco de dados."
-                )
+                render_delete_warning(title, input_type)
 
                 cancel_col, confirm_col = st.columns([1, 1])
 

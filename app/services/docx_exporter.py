@@ -27,6 +27,17 @@ COLOR_YELLOW = "F59E0B"
 COLOR_RED = "EF4444"
 
 
+TEXT_EVALUATION_LABELS = {
+    "ortografia_gramatica": "Ortografia e gramática",
+    "pontuacao": "Pontuação",
+    "coerencia": "Coerência",
+    "coesao": "Coesão",
+    "clareza_objetividade": "Clareza e objetividade",
+    "estrutura": "Estrutura",
+    "desenvolvimento_argumentacao": "Desenvolvimento da ideia",
+}
+
+
 # =========================================================
 # 🧩 HELPERS DOCX
 # =========================================================
@@ -148,6 +159,47 @@ def format_seconds(seconds) -> str:
     return f"{round(seconds, 2)}s"
 
 
+def get_input_type_label(report: dict) -> str:
+    input_type = report.get("input_type", "video")
+
+    if input_type == "audio":
+        return "Áudio"
+
+    if input_type == "text":
+        return "Texto"
+
+    return "Vídeo"
+
+
+def get_report_title(report: dict) -> str:
+    if report.get("input_type") == "text":
+        return "Relatório de Correção Textual"
+
+    return "Relatório de Análise de Comunicação"
+
+
+def get_report_subtitle(report: dict) -> str:
+    if report.get("input_type") == "text":
+        return (
+            "Avaliação gerada a partir do texto digitado, considerando correção, "
+            "clareza, estrutura, coerência, coesão e desenvolvimento da ideia."
+        )
+
+    return (
+        "Avaliação gerada a partir da transcrição, métricas de fala "
+        "e análise por inteligência artificial."
+    )
+
+
+def get_metric_percentage(value) -> str:
+    try:
+        percentage = round(float(value) * 100)
+    except (TypeError, ValueError):
+        percentage = 0
+
+    return f"{percentage}/100"
+
+
 def filter_attention_points(points: list[str]) -> list[str]:
     filtered = []
 
@@ -253,6 +305,7 @@ def add_cover(document: Document, report: dict, video_name: str):
     created_at = datetime.now().strftime("%d/%m/%Y")
     score = score_data.get("score", 0)
     classification = score_data.get("classificacao", "N/A")
+    input_type_label = get_input_type_label(report)
 
     table = document.add_table(rows=1, cols=2)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -286,7 +339,7 @@ def add_cover(document: Document, report: dict, video_name: str):
 
     add_cell_paragraph(
         left_cell,
-        "Relatório de Oratória",
+        "Relatório gerado por IA",
         size=9,
         color="CBD5E1",
         alignment=WD_ALIGN_PARAGRAPH.CENTER,
@@ -313,7 +366,7 @@ def add_cover(document: Document, report: dict, video_name: str):
 
     add_cell_paragraph(
         left_cell,
-        "ARQUIVO",
+        "TIPO",
         size=8,
         bold=True,
         color="94A3B8",
@@ -322,33 +375,69 @@ def add_cover(document: Document, report: dict, video_name: str):
 
     add_cell_paragraph(
         left_cell,
-        Path(video_name).name,
-        size=8.5,
+        input_type_label,
+        size=10,
         color="FFFFFF",
         alignment=WD_ALIGN_PARAGRAPH.CENTER,
         space_after=14,
     )
 
-    add_cell_paragraph(
-        left_cell,
-        "DURAÇÃO",
-        size=8,
-        bold=True,
-        color="94A3B8",
-        alignment=WD_ALIGN_PARAGRAPH.CENTER,
-    )
+    if report.get("input_type") == "text":
+        add_cell_paragraph(
+            left_cell,
+            "REFERÊNCIA",
+            size=8,
+            bold=True,
+            color="94A3B8",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
 
-    add_cell_paragraph(
-        left_cell,
-        format_seconds(pausas.get("duracao_total", 0)),
-        size=10,
-        color="FFFFFF",
-        alignment=WD_ALIGN_PARAGRAPH.CENTER,
-    )
+        add_cell_paragraph(
+            left_cell,
+            "Texto digitado",
+            size=9,
+            color="FFFFFF",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+    else:
+        add_cell_paragraph(
+            left_cell,
+            "ARQUIVO",
+            size=8,
+            bold=True,
+            color="94A3B8",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+
+        add_cell_paragraph(
+            left_cell,
+            Path(video_name).name,
+            size=8.5,
+            color="FFFFFF",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+            space_after=14,
+        )
+
+        add_cell_paragraph(
+            left_cell,
+            "DURAÇÃO",
+            size=8,
+            bold=True,
+            color="94A3B8",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+
+        add_cell_paragraph(
+            left_cell,
+            format_seconds(pausas.get("duracao_total", 0)),
+            size=10,
+            color="FFFFFF",
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
 
     add_cell_paragraph(
         right_cell,
-        "Relatório de Análise de Comunicação",
+        get_report_title(report),
         size=20,
         bold=True,
         color=COLOR_DARK,
@@ -357,7 +446,7 @@ def add_cover(document: Document, report: dict, video_name: str):
 
     add_cell_paragraph(
         right_cell,
-        "Avaliação gerada a partir da transcrição, métricas de fala e análise por inteligência artificial.",
+        get_report_subtitle(report),
         size=10.5,
         color=COLOR_MUTED,
         space_after=18,
@@ -424,7 +513,7 @@ def add_cover(document: Document, report: dict, video_name: str):
     document.add_page_break()
 
 
-def add_metrics_overview(document: Document, report: dict):
+def add_oral_metrics_overview(document: Document, report: dict):
     score_data = report.get("score_comunicacao", {})
     pausas = report.get("pausas", {})
     recurring_terms = filter_recurring_terms(report)
@@ -467,8 +556,68 @@ def add_metrics_overview(document: Document, report: dict):
         )
 
 
-def add_executive_summary(document: Document, report: dict):
-    add_section_title(document, "Resumo executivo")
+def add_text_metrics_overview(document: Document, report: dict):
+    score_data = report.get("score_comunicacao", {})
+    evaluation = report.get("avaliacao_textual", {})
+    corrections = report.get("correcao_textual", {}).get("principais_correcoes", [])
+    recommendations = report.get("recomendacoes", [])
+
+    add_section_title(document, "Visão geral dos resultados")
+
+    table = document.add_table(rows=1, cols=4)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = True
+
+    metrics = [
+        ("Score", f"{score_data.get('score', 0)}/100", COLOR_BLUE),
+        (
+            "Ortografia",
+            get_metric_percentage(evaluation.get("ortografia_gramatica")),
+            COLOR_YELLOW,
+        ),
+        (
+            "Desenvolvimento",
+            get_metric_percentage(evaluation.get("desenvolvimento_argumentacao")),
+            COLOR_PURPLE,
+        ),
+        (
+            "Recomendações",
+            len(recommendations) if recommendations else len(corrections),
+            COLOR_GREEN,
+        ),
+    ]
+
+    for index, (label, value, color) in enumerate(metrics):
+        cell = table.rows[0].cells[index]
+        clear_cell(cell)
+        set_cell_background(cell, COLOR_LIGHT_BG)
+        set_cell_border(cell, COLOR_BORDER)
+
+        add_cell_paragraph(
+            cell,
+            label.upper(),
+            size=8,
+            bold=True,
+            color=COLOR_MUTED,
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+
+        add_cell_paragraph(
+            cell,
+            str(value),
+            size=16,
+            bold=True,
+            color=color,
+            alignment=WD_ALIGN_PARAGRAPH.CENTER,
+        )
+
+
+def add_executive_summary(
+    document: Document,
+    report: dict,
+    title: str = "Resumo executivo",
+):
+    add_section_title(document, title)
 
     ai_analysis = report.get("analise_global_ia", {})
     score_data = report.get("score_comunicacao", {})
@@ -511,6 +660,49 @@ def add_attention_points(document: Document, report: dict):
         paragraph = document.add_paragraph(style="List Bullet")
         run = paragraph.add_run(point)
         set_run_style(run, size=10.5, color=COLOR_TEXT)
+
+
+def add_recommendations_section(document: Document, report: dict):
+    add_section_title(document, "Recomendações")
+
+    recommendations = report.get("recomendacoes", [])
+
+    table = document.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    cell = table.rows[0].cells[0]
+    clear_cell(cell)
+    set_cell_background(cell, COLOR_LIGHT_BG)
+    set_cell_border(cell, COLOR_BORDER)
+
+    if recommendations:
+        for recommendation in recommendations:
+            add_cell_paragraph(
+                cell,
+                f"• {recommendation}",
+                size=10.5,
+                color=COLOR_TEXT,
+            )
+        return
+
+    if report.get("input_type") == "text":
+        default_text = (
+            "Revise a estrutura do texto, corrija erros de escrita, melhore a conexão "
+            "entre as ideias e desenvolva melhor a explicação central."
+        )
+    else:
+        default_text = (
+            "Continue praticando com foco em clareza, organização da mensagem, ritmo "
+            "e pausas estratégicas. Use este relatório como referência para acompanhar "
+            "sua evolução nas próximas apresentações."
+        )
+
+    add_cell_paragraph(
+        cell,
+        default_text,
+        size=10.5,
+        color=COLOR_TEXT,
+    )
 
 
 def add_pauses_section(document: Document, report: dict):
@@ -601,24 +793,95 @@ def add_transcription_section(document: Document, report: dict):
         add_paragraph(document, "Transcrição indisponível.", color=COLOR_MUTED)
 
 
-def add_recommendations_section(document: Document):
-    add_section_title(document, "Recomendação geral")
+def add_text_correction_section(document: Document, report: dict):
+    add_section_title(document, "Correção")
 
-    table = document.add_table(rows=1, cols=1)
+    correction = report.get("correcao_textual", {})
+    corrected_text = correction.get("texto_corrigido", "")
+
+    if corrected_text:
+        add_paragraph(document, corrected_text, size=10.5, color=COLOR_TEXT)
+    else:
+        add_paragraph(document, "Nenhuma versão corrigida foi gerada.", color=COLOR_MUTED)
+
+    main_corrections = correction.get("principais_correcoes", [])
+
+    add_section_title(document, "Principais correções")
+
+    if not main_corrections:
+        add_paragraph(
+            document,
+            "Nenhuma correção específica foi listada.",
+            color=COLOR_MUTED,
+        )
+        return
+
+    for item in main_corrections:
+        paragraph = document.add_paragraph(style="List Bullet")
+        run = paragraph.add_run(item)
+        set_run_style(run, size=10.5, color=COLOR_TEXT)
+
+
+def add_text_evaluation_section(document: Document, report: dict):
+    add_section_title(document, "Avaliação textual")
+
+    evaluation = report.get("avaliacao_textual", {})
+
+    if not evaluation:
+        add_paragraph(
+            document,
+            "Nenhuma avaliação textual detalhada foi encontrada.",
+            color=COLOR_MUTED,
+        )
+        return
+
+    table = document.add_table(rows=1, cols=2)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = True
 
-    cell = table.rows[0].cells[0]
-    clear_cell(cell)
-    set_cell_background(cell, COLOR_LIGHT_BG)
-    set_cell_border(cell, COLOR_BORDER)
+    left_cell = table.rows[0].cells[0]
+    right_cell = table.rows[0].cells[1]
 
-    add_cell_paragraph(
-        cell,
-        "Continue praticando com foco em clareza, organização da mensagem, ritmo e pausas estratégicas. "
-        "Use este relatório como referência para acompanhar sua evolução nas próximas apresentações.",
-        size=10.5,
-        color=COLOR_TEXT,
-    )
+    clear_cell(left_cell)
+    clear_cell(right_cell)
+
+    set_cell_background(left_cell, COLOR_LIGHT_BG)
+    set_cell_background(right_cell, COLOR_LIGHT_BG)
+    set_cell_border(left_cell, COLOR_BORDER)
+    set_cell_border(right_cell, COLOR_BORDER)
+
+    items = list(TEXT_EVALUATION_LABELS.items())
+
+    midpoint = (len(items) + 1) // 2
+
+    for key, label in items[:midpoint]:
+        add_cell_paragraph(
+            left_cell,
+            f"{label}: {get_metric_percentage(evaluation.get(key))}",
+            size=10,
+            color=COLOR_TEXT,
+        )
+
+    for key, label in items[midpoint:]:
+        add_cell_paragraph(
+            right_cell,
+            f"{label}: {get_metric_percentage(evaluation.get(key))}",
+            size=10,
+            color=COLOR_TEXT,
+        )
+
+
+def add_original_text_section(document: Document, report: dict):
+    document.add_page_break()
+
+    add_section_title(document, "Texto original enviado")
+
+    original_text = report.get("transcricao", "")
+
+    if original_text:
+        add_paragraph(document, original_text, size=10, color=COLOR_TEXT)
+    else:
+        add_paragraph(document, "Texto original indisponível.", color=COLOR_MUTED)
 
 
 def add_human_review_section(document: Document):
@@ -637,9 +900,7 @@ def add_human_review_section(document: Document):
 # =========================================================
 # 🧾 MAIN
 # =========================================================
-def build_docx_report(report: dict, video_name: str = "Vídeo analisado") -> bytes:
-    document = Document()
-
+def configure_document(document: Document):
     section = document.sections[0]
     section.top_margin = Inches(0.55)
     section.bottom_margin = Inches(0.55)
@@ -650,13 +911,18 @@ def build_docx_report(report: dict, video_name: str = "Vídeo analisado") -> byt
     styles["Normal"].font.name = "Aptos"
     styles["Normal"].font.size = Pt(10.5)
 
+
+def build_oral_docx_report(report: dict, video_name: str) -> bytes:
+    document = Document()
+    configure_document(document)
+
     add_cover(document, report, video_name)
-    add_metrics_overview(document, report)
+    add_oral_metrics_overview(document, report)
     add_executive_summary(document, report)
+    add_recommendations_section(document, report)
     add_attention_points(document, report)
     add_pauses_section(document, report)
     add_repetitions_section(document, report)
-    add_recommendations_section(document)
     add_transcription_section(document, report)
     add_human_review_section(document)
 
@@ -665,3 +931,30 @@ def build_docx_report(report: dict, video_name: str = "Vídeo analisado") -> byt
     buffer.seek(0)
 
     return buffer.getvalue()
+
+
+def build_text_docx_report(report: dict, video_name: str) -> bytes:
+    document = Document()
+    configure_document(document)
+
+    add_cover(document, report, video_name)
+    add_text_metrics_overview(document, report)
+    add_text_correction_section(document, report)
+    add_text_evaluation_section(document, report)
+    add_executive_summary(document, report, title="Análise geral")
+    add_recommendations_section(document, report)
+    add_original_text_section(document, report)
+    add_human_review_section(document)
+
+    buffer = BytesIO()
+    document.save(buffer)
+    buffer.seek(0)
+
+    return buffer.getvalue()
+
+
+def build_docx_report(report: dict, video_name: str = "Vídeo analisado") -> bytes:
+    if report.get("input_type") == "text":
+        return build_text_docx_report(report, video_name)
+
+    return build_oral_docx_report(report, video_name)

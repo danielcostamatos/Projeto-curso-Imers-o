@@ -233,7 +233,7 @@ SELECT
     input_type,
     created_at
 FROM public.analyses
-WHERE input_type NOT IN ('audio', 'video')
+WHERE input_type NOT IN ('audio', 'video', 'text')
    OR input_type IS NULL;
 
 

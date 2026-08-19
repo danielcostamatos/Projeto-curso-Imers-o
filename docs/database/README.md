@@ -15,6 +15,7 @@ Inclui:
 * Tabela `admin_users`
 * Função `public.is_admin`
 * Colunas de expiração, status e tipo de entrada da análise
+* Suporte a análises por áudio, vídeo e texto
 * Policies de acesso por usuário
 * Policies administrativas somente leitura
 * Índices úteis para histórico, consultas por usuário e perfis
@@ -44,7 +45,9 @@ Contém consultas de auditoria para verificar:
 * Administradores não possuem permissões administrativas de criação, edição ou exclusão de dados de usuários comuns pelo app.
 * Vídeos não são salvos no banco de dados.
 * Áudios gravados na versão web não são salvos no banco de dados.
-* O banco salva apenas relatórios, transcrições, scores e metadados.
+* Textos digitados são salvos no banco como parte do relatório da análise textual.
+* A análise textual possui correção, avaliação textual, score próprio e recomendações específicas.
+* O banco salva relatórios, transcrições ou textos originais, scores e metadados.
 * Análises possuem `status`.
 * `active`: análise disponível.
 * `deleted`: análise descartada pelo usuário.
@@ -52,7 +55,7 @@ Contém consultas de auditoria para verificar:
 * Análises descartadas não aparecem no histórico do usuário comum.
 * O limite mensal não é restaurado ao descartar uma análise.
 * As análises expiram após 15 dias.
-* Cada análise possui um `input_type`, indicando se foi feita por áudio ou vídeo.
+* Cada análise possui um `input_type`, indicando se foi feita por áudio, vídeo ou texto.
 
 ## Tabelas principais
 
@@ -107,10 +110,13 @@ A coluna `video_name` guarda apenas uma referência textual ao insumo usado na a
 
 O conteúdo bruto original, seja áudio ou vídeo, não é salvo no banco de dados.
 
+Em análises por texto, o conteúdo digitado pelo usuário é salvo no campo `transcription` e também compõe o `report_json`, pois ele é necessário para exibir a correção, a avaliação textual e o histórico da análise.
+
 O campo `input_type` identifica a origem da análise:
 
-* `audio`: análise feita a partir de áudio gravado na versão web.
+* `audio`: análise feita a partir de áudio gravado pelo navegador.
 * `video`: análise feita a partir de vídeo enviado na versão local.
+* `text`: análise feita a partir de texto digitado pelo usuário.
 
 ### `admin_users`
 

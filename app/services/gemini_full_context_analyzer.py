@@ -42,6 +42,7 @@ def get_ai_unavailable_response(message: str = FALLBACK_MESSAGE) -> dict:
         "mensagem": message,
         "analise": "",
         "metricas": {},
+        "recomendacoes": [],
     }
 
 
@@ -70,7 +71,11 @@ Retorne apenas JSON válido neste formato:
     "fluidez": 0.0,
     "qualidade_comunicacao": 0.0
   }},
-  "analise": "análise objetiva, natural e compreensível para o usuário final"
+  "analise": "análise objetiva, natural e compreensível para o usuário final",
+  "recomendacoes": [
+    "recomendação prática 1",
+    "recomendação prática 2"
+  ]
 }}
 
 Critérios internos:
@@ -95,6 +100,12 @@ Regras de avaliação:
 - não dê notas altas para falas apenas compreensíveis.
 - seja rigoroso, não suavize falhas.
 - a análise deve citar problemas concretos percebidos na transcrição.
+
+Regras para recomendações:
+- forneça recomendações práticas e aplicáveis.
+- recomende ajustes de organização, clareza, objetividade e condução da fala.
+- quando fizer sentido, recomende reduzir repetições, melhorar pausas e organizar melhor início, desenvolvimento e conclusão.
+- não invente contexto fora da transcrição.
 
 Regras para o texto da análise:
 - escreva a análise como uma devolutiva para o usuário final.
@@ -129,6 +140,7 @@ Transcrição:
             "mensagem": "Análise global por IA executada com sucesso.",
             "analise": parsed.get("analise", "").strip(),
             "metricas": parsed.get("metricas", {}),
+            "recomendacoes": parsed.get("recomendacoes", []),
         }
 
     except Exception as error:

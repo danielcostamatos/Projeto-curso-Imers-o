@@ -44,6 +44,9 @@ def get_input_type_label(input_type: str) -> str:
     if input_type == "audio":
         return "Áudio"
 
+    if input_type == "text":
+        return "Texto"
+
     return "Vídeo"
 
 
@@ -95,6 +98,11 @@ def calculate_analysis_summary(analyses: list) -> dict:
         if analysis.get("input_type") == "video"
     )
 
+    total_text = sum(
+        1 for analysis in analyses
+        if analysis.get("input_type") == "text"
+    )
+
     total_active = sum(
         1 for analysis in analyses
         if analysis.get("status", "active") == "active"
@@ -111,6 +119,7 @@ def calculate_analysis_summary(analyses: list) -> dict:
         "best_score": best_score,
         "total_audio": total_audio,
         "total_video": total_video,
+        "total_text": total_text,
         "total_active": total_active,
         "total_deleted": total_deleted,
     }
@@ -147,13 +156,19 @@ def filter_analyses(
             if analysis.get("input_type") == "video"
         ]
 
+    elif input_type_filter == "Texto":
+        filtered = [
+            analysis for analysis in filtered
+            if analysis.get("input_type") == "text"
+        ]
+
     return filtered
 
 
 def render_admin_metrics(profiles: list, analyses: list):
     summary = calculate_analysis_summary(analyses)
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.metric("Usuários", len(profiles))
@@ -166,6 +181,9 @@ def render_admin_metrics(profiles: list, analyses: list):
 
     with col4:
         st.metric("Vídeo", summary["total_video"])
+
+    with col5:
+        st.metric("Texto", summary["total_text"])
 
 
 def render_selected_user_profile(profile: dict):
@@ -205,7 +223,7 @@ def render_selected_user_metrics(analyses: list):
     with col4:
         st.metric("Ativas", summary["total_active"])
 
-    col5, col6, col7 = st.columns(3)
+    col5, col6, col7, col8 = st.columns(4)
 
     with col5:
         st.metric("Descartadas", summary["total_deleted"])
@@ -215,6 +233,9 @@ def render_selected_user_metrics(analyses: list):
 
     with col7:
         st.metric("Vídeo", summary["total_video"])
+
+    with col8:
+        st.metric("Texto", summary["total_text"])
 
 
 def render_analysis_filters():
@@ -231,7 +252,7 @@ def render_analysis_filters():
     with col2:
         input_type_filter = st.selectbox(
             "Tipo",
-            options=["Todos", "Áudio", "Vídeo"]
+            options=["Todos", "Áudio", "Vídeo", "Texto"]
         )
 
     return status_filter, input_type_filter

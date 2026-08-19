@@ -111,6 +111,11 @@ WITH CHECK (auth.uid() = id);
 -- Tabela: analyses
 -- =========================
 
+-- input_type pode ser:
+-- audio = áudio gravado pelo navegador
+-- video = vídeo enviado na versão local
+-- text = texto digitado pelo usuário
+
 CREATE TABLE IF NOT EXISTS public.analyses (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -148,7 +153,7 @@ BEGIN
     ) THEN
         ALTER TABLE public.analyses
         ADD CONSTRAINT analyses_input_type_check
-        CHECK (input_type IN ('audio', 'video'));
+        CHECK (input_type IN ('audio', 'video', 'text'));
     END IF;
 END $$;
 

@@ -6,7 +6,7 @@ from app.services.supabase_client import get_supabase_client
 
 MONTHLY_ANALYSIS_LIMIT = 30
 ANALYSIS_EXPIRATION_DAYS = 15
-VALID_INPUT_TYPES = {"audio", "video"}
+VALID_INPUT_TYPES = {"audio", "video", "text"}
 
 
 def get_authenticated_client(access_token: str):
@@ -88,12 +88,18 @@ def get_analysis_title(input_path: str, input_type: str) -> str:
     if input_type == "audio":
         return "Áudio gravado pelo navegador"
 
+    if input_type == "text":
+        return "Texto digitado"
+
     return Path(input_path).stem
 
 
 def get_input_reference(input_path: str, input_type: str) -> str:
     if input_type == "audio":
         return "audio_recording"
+
+    if input_type == "text":
+        return "text_input"
 
     return input_path
 
