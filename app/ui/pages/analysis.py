@@ -125,6 +125,46 @@ def render_result_actions():
             st.rerun()
 
 
+def render_analysis_privacy_notice():
+    with st.expander("Privacidade e qualidade da análise", expanded=False):
+        st.markdown(
+            """
+            * Vídeos e áudios são utilizados apenas temporariamente para processamento.
+            * Vídeos e áudios brutos não são salvos no banco de dados nem no Supabase Storage.
+            * Textos digitados são salvos como parte do relatório da análise textual, junto com score, correção e recomendações.
+            * As análises ficam disponíveis por 15 dias e podem ser descartadas pelo usuário.
+            * O descarte remove a análise do histórico comum, mas mantém o registro para controle interno.
+            * Para análises por áudio ou vídeo, certifique-se de que o áudio foi captado com clareza, com pouco ruído externo e boa distância do microfone.
+            """
+        )
+
+
+def render_audio_quality_notice(source: str):
+    if source == "video":
+        message = (
+            "Certifique-se de que o áudio do vídeo foi captado com clareza, "
+            "sem ruído externo relevante, eco excessivo, volume muito baixo ou "
+            "falas sobrepostas. Esses fatores podem interferir na transcrição e "
+            "no resultado da análise."
+        )
+    else:
+        message = (
+            "Certifique-se de que o áudio foi captado com clareza, sem ruído "
+            "externo relevante, eco excessivo, volume muito baixo ou falas "
+            "sobrepostas. Esses fatores podem interferir na transcrição e no "
+            "resultado da análise."
+        )
+
+    st.info(message)
+
+
+def render_text_privacy_notice():
+    st.info(
+        "O texto digitado será salvo como parte do relatório da análise textual, "
+        "junto com a correção, avaliação, score e recomendações."
+    )
+
+
 def render_analysis_intro():
     st.title("Análise")
 
@@ -134,6 +174,8 @@ def render_analysis_intro():
     )
 
     st.caption(get_app_mode_label())
+
+    render_analysis_privacy_notice()
 
 
 def render_analysis_method_selector():
@@ -256,6 +298,8 @@ def render_selected_method_header(title: str, description: str):
     st.title(title)
     st.write(description)
 
+    render_analysis_privacy_notice()
+
     if st.button("Escolher outro tipo de análise"):
         clear_selected_analysis_method()
 
@@ -283,6 +327,8 @@ def render_video_uploader(user_id: str, access_token: str):
             "carregado está correto."
         )
     )
+
+    render_audio_quality_notice("video")
 
     with st.container(border=True):
         st.markdown("### Arquivo de vídeo")
@@ -404,6 +450,8 @@ def render_audio_analysis(user_id: str, access_token: str):
         )
     )
 
+    render_audio_quality_notice("audio")
+
     with st.container(border=True):
         st.subheader("Grave seu discurso")
 
@@ -460,6 +508,8 @@ def render_text_analysis(user_id: str, access_token: str):
             "clareza, organização, coesão, repetições e pontos de melhoria do conteúdo."
         )
     )
+
+    render_text_privacy_notice()
 
     with st.container(border=True):
         st.subheader("Texto do discurso")
