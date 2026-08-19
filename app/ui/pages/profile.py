@@ -50,7 +50,7 @@ def render_complete_profile(user_id: str, access_token: str):
 
         full_name = st.text_input(
             "Nome completo",
-            placeholder="Ex: Daniel Costa"
+            placeholder="Digite seu nome completo"
         )
 
         birth_date = st.date_input(

@@ -19,12 +19,19 @@ def translate_auth_error(error_message: str) -> str:
         return "E-mail ou senha incorretos."
 
     if "email not confirmed" in error_message:
-        return "E-mail ainda não confirmado. Verifique sua caixa de entrada."
+        return "E-mail ainda não confirmado. Verifique sua caixa de entrada antes de fazer login."
+
+    if "email" in error_message and "confirm" in error_message:
+        return "E-mail ainda não confirmado. Verifique sua caixa de entrada antes de fazer login."
 
     if "password" in error_message:
         return get_password_rules_message()
 
     return "Não foi possível concluir a operação. Verifique os dados informados."
+
+
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
 
 
 def render_login():
@@ -44,6 +51,12 @@ def render_login():
                     st.error("Erro, verifique sua conexão com a rede.")
                     return
 
+                email = normalize_email(email)
+
+                if not email or not password:
+                    st.error("Informe e-mail e senha para entrar.")
+                    return
+
                 try:
                     response = supabase.auth.sign_in_with_password({
                         "email": email,
@@ -61,6 +74,11 @@ def render_login():
                     st.error(translate_auth_error(str(e)))
 
     with tab_signup:
+        st.info(
+            "Após criar sua conta, pode ser necessário confirmar o e-mail antes "
+            "de fazer login. Verifique sua caixa de entrada e também a pasta de spam."
+        )
+
         with st.form("signup_form"):
             email = st.text_input("Email", key="signup_email")
             password = st.text_input("Senha", type="password", key="signup_password")
@@ -77,6 +95,12 @@ def render_login():
             if submitted:
                 if not has_network_connection():
                     st.error("Erro, verifique sua conexão com a rede.")
+                    return
+
+                email = normalize_email(email)
+
+                if not email:
+                    st.error("Informe um e-mail válido.")
                     return
 
                 if password != confirm_password:
@@ -101,7 +125,14 @@ def render_login():
                         st.success("Conta criada com sucesso! Complete seu cadastro.")
                         st.rerun()
                     else:
-                        st.success("Conta criada com sucesso! Agora faça login.")
+                        st.success(
+                            "Conta criada com sucesso! Verifique seu e-mail para "
+                            "confirmar a conta antes de fazer login."
+                        )
+                        st.info(
+                            "Caso não encontre o e-mail de confirmação, verifique "
+                            "também a pasta de spam ou lixo eletrônico."
+                        )
 
                 except Exception as e:
                     st.error(translate_auth_error(str(e)))
