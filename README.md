@@ -1,8 +1,8 @@
-# Análise de Comunicação por Vídeo
+# Projeto Imersão - Análise de Comunicação
 
-Sistema web em Python para análise de comunicação oral a partir de vídeos, com foco em transcrição, avaliação de clareza, fluidez, organização da fala, pausas, repetições, qualidade comunicativa e geração de relatório em DOCX.
+Sistema web em Python para análise de comunicação a partir de áudio, vídeo e texto, com foco em transcrição, correção textual, avaliação de clareza, fluidez, organização da mensagem, pausas, repetições, qualidade comunicativa e geração de relatórios em DOCX.
 
-O projeto foi desenvolvido como MVP para apoiar avaliações pedagógicas de comunicação, permitindo que usuários enviem vídeos de fala/apresentação e recebam um feedback estruturado com apoio de inteligência artificial.
+O projeto foi desenvolvido como MVP para apoiar avaliações pedagógicas de comunicação, permitindo que usuários gravem áudio, enviem vídeos na versão local ou escrevam textos para receber feedback estruturado com apoio de inteligência artificial.
 
 ---
 
@@ -10,26 +10,61 @@ O projeto foi desenvolvido como MVP para apoiar avaliações pedagógicas de com
 
 * Cadastro e login de usuários com Supabase Auth.
 * Cadastro e edição de perfil do usuário.
-* Upload de vídeo pela interface web.
-* Pré-visualização do vídeo antes da análise.
+* Upload de foto de perfil com Supabase Storage.
+* Análise por áudio gravado diretamente no navegador.
+* Análise por vídeo na versão local.
+* Análise por texto digitado.
 * Extração automática de áudio com FFmpeg.
 * Transcrição automática com Whisper.
 * Análise de pausas e tempo de silêncio.
 * Identificação de repetições sequenciais e termos recorrentes.
 * Avaliação global da comunicação com Gemini.
-* Cálculo de score de comunicação.
+* Correção textual com IA.
+* Avaliação textual com critérios próprios.
+* Cálculo de score de comunicação oral.
+* Cálculo de score textual.
 * Histórico de análises por usuário.
 * Limite mensal de análises.
 * Expiração automática das análises após 15 dias.
 * Descarte de análise com confirmação.
 * Geração de relatório profissional em DOCX.
+* Painel administrativo somente leitura.
 * Interface web com Streamlit.
+* Deploy web com Streamlit Cloud.
 
 ---
 
-## Critérios de avaliação
+## Tipos de análise
 
-O sistema avalia a comunicação considerando:
+O sistema possui três formas de análise:
+
+### Áudio
+
+Na versão web, o usuário pode gravar um áudio diretamente pelo navegador. O sistema processa a fala, gera a transcrição e avalia a comunicação oral.
+
+### Vídeo
+
+Na versão local, o usuário pode enviar um vídeo. O sistema extrai o áudio do arquivo, realiza a transcrição e avalia a apresentação oral.
+
+### Texto
+
+O usuário pode digitar um texto para análise. O sistema avalia aspectos de escrita, corrige o conteúdo e gera recomendações específicas.
+
+A análise textual considera critérios como:
+
+* Ortografia e gramática.
+* Pontuação.
+* Coerência.
+* Coesão.
+* Clareza e objetividade.
+* Estrutura.
+* Desenvolvimento da ideia.
+
+---
+
+## Critérios de avaliação oral
+
+Nas análises por áudio e vídeo, o sistema avalia a comunicação considerando:
 
 * Controle de linguagem.
 * Clareza.
@@ -51,12 +86,14 @@ Observação: vícios de linguagem e muletas de fala podem impactar o score inte
 * Streamlit
 * Supabase Auth
 * Supabase Database
+* Supabase Storage
 * OpenAI Whisper
 * Google Gemini API
 * FFmpeg
 * python-docx
 * Matplotlib
 * Git/GitHub
+* Streamlit Cloud
 
 ---
 
@@ -67,6 +104,7 @@ Observação: vícios de linguagem e muletas de fala podem impactar o score inte
 * Conta/projeto no Supabase.
 * Chave da Gemini API.
 * Ambiente virtual Python.
+* Navegador com suporte à gravação de áudio para uso da versão web.
 
 ---
 
@@ -77,14 +115,58 @@ Crie um arquivo `.env` na raiz do projeto com as variáveis necessárias.
 Exemplo:
 
 ```env
-SUPABASE_URL=sua_url_do_supabase
-SUPABASE_KEY=sua_chave_do_supabase
+# Modo da aplicação
+# local = análise por vídeo, áudio e texto
+# web = análise por áudio e texto
+APP_MODE=local
 
+# Supabase
+SUPABASE_URL=sua_url_do_supabase
+SUPABASE_KEY=sua_chave_anon_do_supabase
+
+# Gemini
 GEMINI_API_KEY=sua_chave_gemini
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
+A chave do Supabase usada no app deve ser a chave pública `anon`. O projeto não deve utilizar `service_role` no frontend ou no Streamlit.
+
 A análise depende da conexão com a internet, do Supabase e da Gemini API.
+
+---
+
+## Modos da aplicação
+
+O projeto possui dois modos principais de execução.
+
+### Modo local
+
+Usado para desenvolvimento e para a versão com análise por vídeo.
+
+```env
+APP_MODE=local
+```
+
+No modo local, o sistema permite:
+
+* Enviar vídeo.
+* Gravar áudio.
+* Digitar texto.
+
+### Modo web
+
+Usado no deploy do Streamlit Cloud.
+
+```env
+APP_MODE=web
+```
+
+No modo web, o sistema permite:
+
+* Gravar áudio.
+* Digitar texto.
+
+A opção de vídeo não aparece na versão web, pois o processamento de vídeo é mais pesado e foi reservado para a execução local.
 
 ---
 
@@ -93,13 +175,18 @@ A análise depende da conexão com a internet, do Supabase e da Gemini API.
 ```text
 app/
 ├── database/
+│   ├── __init__.py
+│   ├── admin_db.py
 │   ├── profile_db.py
 │   └── supabase_db.py
 │
 ├── services/
+│   ├── __init__.py
 │   ├── analysis_pipeline.py
 │   ├── attention_points_analyzer.py
 │   ├── audio_extractor.py
+│   ├── audio_file_manager.py
+│   ├── avatar_storage.py
 │   ├── docx_exporter.py
 │   ├── gemini_full_context_analyzer.py
 │   ├── network_checker.py
@@ -109,10 +196,15 @@ app/
 │   ├── score_analyzer.py
 │   ├── supabase_client.py
 │   ├── temp_file_cleaner.py
+│   ├── text_analysis_analyzer.py
+│   ├── text_report_builder.py
+│   ├── text_score_analyzer.py
 │   └── transcriber.py
 │
 ├── ui/
+│   ├── __init__.py
 │   ├── components/
+│   │   ├── __init__.py
 │   │   ├── avatar.py
 │   │   ├── navigation.py
 │   │   ├── report_view.py
@@ -120,6 +212,9 @@ app/
 │   │   └── sidebar.py
 │   │
 │   ├── pages/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── admin_detail.py
 │   │   ├── analysis.py
 │   │   ├── auth.py
 │   │   ├── detail.py
@@ -132,6 +227,8 @@ app/
 │   └── styles.py
 │
 ├── utils/
+│   ├── __init__.py
+│   ├── app_mode.py
 │   ├── file_manager.py
 │   └── validators.py
 │
@@ -142,6 +239,17 @@ data/
 ├── temp/
 ├── output/
 └── profile_images/
+
+docs/
+└── database/
+    ├── README.md
+    ├── supabase_checks.sql
+    └── supabase_setup.sql
+
+requirements.txt
+requirements-lock.txt
+packages.txt
+.env.example
 ```
 
 ---
@@ -160,11 +268,11 @@ Ele chama o roteador principal da interface:
 app/ui/dashboard.py
 ```
 
-O `dashboard.py` centraliza a navegação entre páginas, aplicação de estilos, autenticação de sessão e verificação de perfil.
+O `dashboard.py` centraliza a navegação entre páginas, aplicação de estilos, autenticação de sessão, verificação de perfil e controle de acesso ao painel administrativo.
 
 ---
 
-## Como rodar o projeto
+## Como rodar o projeto localmente
 
 ### 1. Criar ambiente virtual
 
@@ -184,13 +292,27 @@ source .venv/Scripts/activate
 pip install -r requirements.txt
 ```
 
-### 4. Rodar a aplicação
+### 4. Configurar variáveis de ambiente
+
+Crie o arquivo `.env` na raiz do projeto e preencha as variáveis necessárias:
+
+```env
+APP_MODE=local
+
+SUPABASE_URL=sua_url_do_supabase
+SUPABASE_KEY=sua_chave_anon_do_supabase
+
+GEMINI_API_KEY=sua_chave_gemini
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+### 5. Rodar a aplicação
 
 ```bash
 python -m streamlit run app/main.py
 ```
 
-### 5. Parar o Streamlit
+### 6. Parar o Streamlit
 
 ```bash
 Ctrl + C
@@ -198,30 +320,76 @@ Ctrl + C
 
 ---
 
+## Deploy web
+
+O projeto pode ser publicado no Streamlit Cloud.
+
+Configuração usada no deploy:
+
+```text
+Main file path: app/main.py
+Branch: main
+Python: 3.12
+```
+
+No Streamlit Cloud, as variáveis devem ser configuradas em `Secrets`.
+
+Exemplo:
+
+```toml
+APP_MODE = "web"
+
+SUPABASE_URL = "sua_url_do_supabase"
+SUPABASE_KEY = "sua_chave_anon_do_supabase"
+
+GEMINI_API_KEY = "sua_chave_gemini"
+GEMINI_MODEL = "gemini-2.5-flash"
+```
+
+Para o Streamlit Cloud instalar o FFmpeg, o projeto utiliza o arquivo:
+
+```text
+packages.txt
+```
+
+Com o conteúdo:
+
+```text
+ffmpeg
+```
+
+---
+
 ## Fluxo de uso
 
-1. Usuário acessa a aplicação.
+1. O usuário acessa a aplicação.
 2. Faz login ou cria uma conta.
 3. Completa o cadastro de perfil, caso ainda não tenha feito.
 4. Acessa a página inicial.
-5. Envia um vídeo na tela de análise.
-6. Confere a pré-visualização do vídeo.
+5. Escolhe o tipo de análise.
+6. Grava áudio, envia vídeo na versão local ou digita um texto.
 7. Inicia a análise.
-8. O sistema extrai o áudio, transcreve, avalia a comunicação e salva o relatório.
-9. O usuário visualiza o resultado na tela.
-10. O usuário pode baixar o relatório em DOCX.
-11. O usuário pode acompanhar análises anteriores no histórico.
+8. O sistema processa o conteúdo.
+9. A IA gera avaliação, score e recomendações.
+10. O relatório é salvo no histórico do usuário.
+11. O usuário visualiza o resultado na tela.
+12. O usuário pode baixar o relatório em DOCX.
+13. O usuário pode acompanhar análises anteriores no histórico.
 
 ---
 
 ## Regras de armazenamento e privacidade
 
-* Os vídeos enviados não são armazenados no banco de dados.
-* Os vídeos são salvos apenas temporariamente durante o uso da aplicação.
-* Os arquivos temporários ficam em `data/input/` e `data/temp/`.
-* O sistema limpa os arquivos temporários em momentos importantes do fluxo, como login, logout, nova análise e troca de análise.
-* O banco salva apenas os dados da análise e o relatório estruturado.
-* Fotos de perfil ficam em `data/profile_images/`.
+* Vídeos enviados não são armazenados no banco de dados.
+* Vídeos são usados apenas temporariamente durante o processamento local.
+* Áudios gravados na versão web não são armazenados no banco de dados.
+* Áudios são usados apenas temporariamente durante o processamento.
+* Textos digitados são salvos no banco como parte do relatório da análise textual.
+* O banco salva relatórios, transcrições ou textos originais, scores e metadados.
+* Fotos de perfil são armazenadas no Supabase Storage.
+* A pasta `data/profile_images/` permanece como fallback local e compatibilidade.
+* Arquivos temporários ficam em `data/input/` e `data/temp/`.
+* O sistema limpa arquivos temporários em momentos importantes do fluxo, como login, logout, nova análise e troca de análise.
 * As pastas de dados são preservadas no Git com arquivos `.gitkeep`.
 
 ---
@@ -239,23 +407,30 @@ Ctrl + C
 
 ## Banco de dados
 
-O projeto utiliza Supabase para autenticação e persistência de dados.
+O projeto utiliza Supabase para autenticação, persistência de dados e controle de acesso.
 
 Principais tabelas:
 
 ```text
 profiles
 analyses
+admin_users
 ```
 
 A tabela `profiles` armazena os dados cadastrais do usuário.
 
-A tabela `analyses` armazena os dados estruturados das análises, incluindo:
+A tabela `analyses` armazena os dados estruturados das análises.
+
+A tabela `admin_users` define quais usuários possuem acesso administrativo.
+
+Campos principais da tabela `analyses`:
 
 ```text
+id
 user_id
 title
 video_name
+input_type
 score
 transcription
 report_json
@@ -265,23 +440,131 @@ expires_at
 status
 ```
 
-As políticas de RLS devem garantir que cada usuário acesse apenas seus próprios dados.
+O campo `input_type` identifica a origem da análise:
+
+```text
+audio
+video
+text
+```
+
+Em análises por áudio, o valor de referência salvo em `video_name` é:
+
+```text
+audio_recording
+```
+
+Em análises por texto, o valor de referência salvo em `video_name` é:
+
+```text
+text_input
+```
+
+As políticas de RLS garantem que cada usuário acesse apenas seus próprios dados.
+
+Administradores podem visualizar perfis e análises de todos os usuários em modo somente leitura.
+
+---
+
+## Supabase Storage
+
+O projeto utiliza Supabase Storage para armazenar fotos de perfil.
+
+Bucket utilizado:
+
+```text
+profile-images
+```
+
+Cada usuário só pode inserir, atualizar, visualizar e remover arquivos dentro da própria pasta no bucket.
+
+Os arquivos de áudio e vídeo não são enviados para o Supabase Storage.
+
+---
+
+## Painel administrativo
+
+O sistema possui um painel administrativo somente leitura.
+
+O administrador pode:
+
+* Visualizar usuários cadastrados.
+* Visualizar perfis.
+* Visualizar análises.
+* Filtrar análises por usuário.
+* Filtrar análises por tipo.
+* Abrir detalhes de uma análise.
+* Baixar relatório DOCX.
+
+O administrador não pode:
+
+* Editar dados de usuários comuns.
+* Excluir usuários.
+* Excluir análises.
+* Alterar relatórios.
+* Tornar outros usuários administradores pelo app.
+
+O cadastro de administradores deve ser feito manualmente no Supabase, por meio da tabela:
+
+```text
+admin_users
+```
 
 ---
 
 ## Relatório DOCX
 
-O sistema gera um relatório editável em DOCX contendo:
+O sistema gera relatórios editáveis em DOCX.
+
+### Relatório de áudio e vídeo
+
+Contém:
 
 * Score geral.
 * Classificação.
 * Resumo da análise.
-* Transcrição.
+* Recomendações.
 * Pontos de atenção.
-* Pausas.
-* Repetições.
-* Análise global por IA.
-* Recomendações e observações.
+* Pausas e ritmo.
+* Repetições e termos recorrentes.
+* Transcrição.
+* Espaço para observações de revisão humana.
+
+### Relatório de texto
+
+Contém:
+
+* Score textual.
+* Classificação.
+* Correção textual.
+* Principais correções.
+* Avaliação textual.
+* Análise geral.
+* Recomendações.
+* Texto original enviado.
+* Espaço para observações de revisão humana.
+
+---
+
+## Documentação do banco
+
+A documentação específica do Supabase fica em:
+
+```text
+docs/database/
+```
+
+Arquivos principais:
+
+```text
+docs/database/supabase_setup.sql
+docs/database/supabase_checks.sql
+docs/database/README.md
+```
+
+O arquivo `supabase_setup.sql` documenta a estrutura principal do banco, tabelas, colunas, policies, função administrativa, índices e Storage.
+
+O arquivo `supabase_checks.sql` contém consultas de auditoria para validar tabelas, policies, perfis, análises, tipos de entrada, expiração, administradores e Storage.
 
 ---
 
@@ -293,16 +576,34 @@ Rodar aplicação:
 python -m streamlit run app/main.py
 ```
 
-Atualizar dependências:
+Rodar aplicação simulando o comando do Streamlit Cloud:
 
 ```bash
-pip freeze > requirements.txt
+streamlit run app/main.py
+```
+
+Instalar dependências:
+
+```bash
+pip install -r requirements.txt
+```
+
+Atualizar lock de dependências:
+
+```bash
+pip freeze > requirements-lock.txt
 ```
 
 Limpar arquivos temporários manualmente:
 
 ```bash
 find data/input data/temp -type f ! -name ".gitkeep" -delete
+```
+
+Remover caches Python:
+
+```bash
+find app -type d -name "__pycache__" -prune -exec rm -rf {} +
 ```
 
 Verificar erros de compilação:
@@ -329,17 +630,33 @@ git push origin main
 
 ## Status do projeto
 
-Projeto em fase de MVP funcional, com autenticação, análise de vídeo, histórico, relatórios, controle mensal, expiração de análises e interface modularizada.
+Projeto em fase de MVP funcional.
+
+Funcionalidades já implementadas:
+
+* Autenticação de usuários.
+* Cadastro de perfil.
+* Upload de foto de perfil.
+* Análise por áudio.
+* Análise por vídeo na versão local.
+* Análise por texto.
+* Score oral.
+* Score textual.
+* Histórico de análises.
+* Relatórios DOCX.
+* Controle mensal de análises.
+* Expiração automática.
+* Descarte por soft delete.
+* Painel administrativo somente leitura.
+* Deploy web no Streamlit Cloud.
 
 ---
 
 ## Próximas etapas
 
-* Revisar documentação final do projeto.
-* Revisar mensagens e textos da interface.
-* Preparar checklist de deploy.
+* Criar aviso simples de privacidade na interface.
+* Preparar checklist final de testes do MVP.
 * Otimizar custos e uso de tokens da IA.
-* Avaliar painel administrativo.
-* Avaliar regras futuras para usuários admin/dev.
 * Melhorar monitoramento e logs.
-* Preparar deploy web.
+* Revisar responsividade em dispositivos móveis.
+* Criar tag de versão do MVP.

@@ -1,3 +1,16 @@
+-- =========================================================
+-- 02 - Supabase Checks - Projeto Imersão
+-- =========================================================
+-- Consultas de auditoria do banco Supabase.
+-- Use este arquivo para validar tabelas, policies, perfis,
+-- análises, tipos de entrada, expiração, administradores
+-- e configurações de Storage.
+--
+-- Este script é seguro para execução, pois deve conter apenas
+-- consultas de verificação.
+-- =========================================================
+
+
 -- Consultas úteis para auditoria do banco Supabase.
 
 

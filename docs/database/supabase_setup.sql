@@ -1,3 +1,16 @@
+-- =========================================================
+-- 01 - Supabase Setup - Projeto Imersão
+-- =========================================================
+-- Script principal de estrutura do banco Supabase.
+-- Contém tabelas, colunas, constraints, RLS, policies,
+-- função administrativa, índices e Storage.
+--
+-- ATENÇÃO:
+-- Este script deve ser usado como referência ou migração controlada.
+-- Não execute em produção sem revisar antes.
+-- =========================================================
+
+
 -- Supabase setup - Projeto Análise de Comunicação
 -- Este arquivo documenta a estrutura principal do banco, policies RLS, admins e Storage.
 -- Não execute novamente em produção sem revisar o estado atual do banco.
