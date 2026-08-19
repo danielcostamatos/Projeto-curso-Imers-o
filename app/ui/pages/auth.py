@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 
 from app.services.network_checker import has_network_connection
@@ -23,6 +25,12 @@ def translate_auth_error(error_message: str) -> str:
 
     if "email" in error_message and "confirm" in error_message:
         return "E-mail ainda não confirmado. Verifique sua caixa de entrada antes de fazer login."
+    
+    if "email rate limit exceeded" in error_message:
+        return (
+            "O limite temporário de envio de e-mails foi atingido. "
+            "Aguarde alguns minutos e tente novamente."
+    )
 
     if "password" in error_message:
         return get_password_rules_message()
@@ -34,11 +42,37 @@ def normalize_email(email: str) -> str:
     return (email or "").strip().lower()
 
 
+def get_password_reset_redirect_url() -> str | None:
+    redirect_url = os.getenv("PASSWORD_RESET_REDIRECT_URL", "").strip()
+
+    if not redirect_url:
+        return None
+
+    return redirect_url
+
+
+def send_password_reset_email(email: str):
+    redirect_url = get_password_reset_redirect_url()
+
+    if redirect_url:
+        supabase.auth.reset_password_for_email(
+            email,
+            {
+                "redirect_to": redirect_url,
+            }
+        )
+        return
+
+    supabase.auth.reset_password_for_email(email)
+
+
 def render_login():
     st.title("Análise de Comunicação")
     st.subheader("Acesse sua conta")
 
-    tab_login, tab_signup = st.tabs(["Entrar", "Criar conta"])
+    tab_login, tab_signup, tab_reset = st.tabs(
+        ["Entrar", "Criar conta", "Esqueci minha senha"]
+    )
 
     with tab_login:
         with st.form("login_form"):
@@ -133,6 +167,41 @@ def render_login():
                             "Caso não encontre o e-mail de confirmação, verifique "
                             "também a pasta de spam ou lixo eletrônico."
                         )
+
+                except Exception as e:
+                    st.error(translate_auth_error(str(e)))
+
+    with tab_reset:
+        st.info(
+            "Informe o e-mail cadastrado para receber um link de recuperação de senha."
+        )
+
+        with st.form("password_reset_form"):
+            reset_email = st.text_input(
+                "Email",
+                key="password_reset_email"
+            )
+
+            submitted = st.form_submit_button("Enviar link de recuperação")
+
+            if submitted:
+                if not has_network_connection():
+                    st.error("Erro, verifique sua conexão com a rede.")
+                    return
+
+                reset_email = normalize_email(reset_email)
+
+                if not reset_email:
+                    st.error("Informe o e-mail cadastrado.")
+                    return
+
+                try:
+                    send_password_reset_email(reset_email)
+
+                    st.success(
+                        "Se este e-mail estiver cadastrado, enviaremos um link de "
+                        "recuperação. Verifique sua caixa de entrada e a pasta de spam."
+                    )
 
                 except Exception as e:
                     st.error(translate_auth_error(str(e)))
